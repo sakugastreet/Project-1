@@ -1,11 +1,7 @@
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QPushButton, QLineEdit,
-    QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QStackedWidget, QScrollArea)
-from PyQt6.QtCore import Qt
+# from window_types import *
+from .FMS_Classes import *
+from .db_interface import *
 import sys
-from window_types import *
-from db_interface import *
-import pandas as pd
 
 class Header(QWidget):
     def __init__(self, parent):
@@ -48,6 +44,25 @@ class Header(QWidget):
         self.layout.addWidget(self.head_but_3)
         
 
+class Sidebar(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+
+    def open_learning_queue(self):
+        pass
+
+    def open_testing_station(self):
+        pass
+
+    def open_FMS(self):
+        pass
+
+    def open_settings(self):
+        pass
+
 class MainStack(QStackedWidget):
     def __init__(self):
         super().__init__()
@@ -72,8 +87,8 @@ class MainStack(QStackedWidget):
         self.setCurrentIndex(self.addWidget(folder))
 
         
-    def open_file_screen(self):
-        file = FileScreen(self)
+    def open_file_screen(self, verse_id):
+        file = FileScreen(self, self.get_verse(verse_id))
         self.setCurrentIndex(self.addWidget(file))
 
     def back(self):
@@ -88,6 +103,12 @@ class MainStack(QStackedWidget):
         for index, row in root.iterrows():
             files.append((row["dir"], row["id"], row["verse_id"]))
         return files
+    
+    def get_verse(self, verse_id):
+        """Returns a verse from the "verses" table based on the given verse ID"""
+
+        table = self.conn.execute("scripture_text", "verses", f"WHERE verses.id = {verse_id}")
+        return table.iloc[0, 0]
 
 
 class Window(QWidget):
@@ -132,14 +153,3 @@ class Window(QWidget):
         if self.main_stack.count() > 1:
 
             self.main_stack.home()
-
-
-
-
-
-
-app = QApplication(sys.argv)
-window = Window()
-window.show()
-sys.exit(app.exec())
-

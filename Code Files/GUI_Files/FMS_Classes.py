@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QApplication, QWidget, QPushButton, QLineEdit,
-    QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QStackedWidget)
-from PyQt6.QtCore import Qt
-# from main_window import MainStack
+    QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QStackedWidget, QScrollArea)
+
+from PySide6.QtCore import Qt
+
+
 
 class FolderButton(QPushButton):
     def __init__(self, parent, title, dir_id):
@@ -19,7 +21,7 @@ class FolderButton(QPushButton):
 
 class FileButton(QPushButton):
     def __init__(self, parent, title, dir_id):
-        super().__init__(title + "file", parent=parent)
+        super().__init__(title, parent=parent)
 
         self.setContentsMargins(20, 20, 20, 20)
 
@@ -85,17 +87,31 @@ class FolderScreen(QWidget):
 
 class FileScreen(QWidget):
     def __init__(self, parent, text):
-        super().__init__(parent=parent)
+        super().__init__(parent)
+        
+        self.verse = text
 
-        self.layout = QGridLayout()
+        self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.but = QPushButton("hellloooooo")
+        self.text = QLabel(text)
+        self.text.setAlignment(Qt.AlignmentFlag.AlignLeading)
+        self.layout.addWidget(self.text)
+
+        self.input = QLineEdit()
+        self.layout.addWidget(self.input)
+
+        self.but = QPushButton("Submit")
         self.layout.addWidget(self.but)
         self.but.clicked.connect(self.submit_attempt)
+
         
 
     def submit_attempt(self):
-        # self.parent.add_folders_screen(38)
-        self.parentWidget().back()
+        if self.input.text() == self.verse:
+            print("yay")
+            self.parentWidget().removeWidget()
+        else:
+            print("boo!")
+            print(self.input.text())
 
