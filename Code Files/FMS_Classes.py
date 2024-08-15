@@ -5,37 +5,25 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 
-
-class FolderButton(QPushButton):
-    def __init__(self, parent, title, dir_id):
-        super().__init__(title, parent=parent)
-
-        self.setContentsMargins(20, 20, 20, 20)
-
-        self.clicked.connect(self.but_clicked)
-        self.dir_id = dir_id
-
-    def but_clicked(self):
-        self.parentWidget().open_folder(self.dir_id)
-
-
-class FileButton(QPushButton):
-    def __init__(self, parent, title, dir_id):
-        super().__init__(title, parent=parent)
-
-        self.setContentsMargins(20, 20, 20, 20)
-
-        self.clicked.connect(self.but_clicked)
-        self.dir_id = dir_id
-
-    def but_clicked(self):
-        self.parentWidget().open_file(self.dir_id)
+class SimpleButton(QPushButton):
+    """This class should allow me to work with parameters and not have to call in the
+    Parent widgets 24/7  
+    """
+    def __init__(self, title, function, param_data):
+        super().__init__(title)
+        self.func = function
+        self.param_data = param_data
+        self.clicked.connect(self.triggered)
         
+
+    def triggered(self):
+        self.func(self.param_data)
+     
         
 
 class FolderScreen(QWidget):
-    def __init__(self, parent, filenames):
-        super().__init__(parent=parent)
+    def __init__(self, filenames, functions):
+        super().__init__()
 
         self.width = 8
 
@@ -46,12 +34,12 @@ class FolderScreen(QWidget):
         self.folders = []
         self.files = []
 
-        for name, dir, verse_id in filenames:
-            if verse_id == None:
-                self.but = FolderButton(self, name, dir)
+        for id, name, file_id, tag in filenames:
+            if file_id == None:
+                self.but = SimpleButton(name, functions[0], id)
                 self.folders.append(self.but)
             else:
-                self.but = FileButton(self, name, verse_id)
+                self.but = SimpleButton(name, functions[1], file_id)
                 self.files.append(self.but)
             self.but.setFixedSize(140, 60)
             # self.but.setFixedWidth(150)
@@ -76,18 +64,22 @@ class FolderScreen(QWidget):
                 col = 0
                 row += 1
 
-    def open_folder(self, dir_id):
-        # self.parent.add_folders_screen(38)
-        self.parentWidget().add_folder_screen(dir_id)
-    
-    def open_file(self, verse_id):
-        # self.parent.add_folders_screen(38)
-        self.parentWidget().open_file_screen(verse_id)
-
 
 class FileScreen(QWidget):
     def __init__(self, parent, text):
-        super().__init__(parent)
+        super(). __init__(parent)
+
+        self.layout = QHBoxLayout()
+        self.setLayout(self.layout)
+
+        self.label = QLabel("sdfsfefsef")
+        self.layout.addWidget(self.label)
+
+
+
+class TestScreen(QWidget):
+    def __init__(self, text, back):
+        super().__init__()
         
         self.verse = text
 
@@ -102,6 +94,7 @@ class FileScreen(QWidget):
         self.layout.addWidget(self.input)
 
         self.but = QPushButton("Submit")
+        self.but.clicked.connect(back)
         self.layout.addWidget(self.but)
         self.but.clicked.connect(self.submit_attempt)
 

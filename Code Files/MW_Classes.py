@@ -1,7 +1,6 @@
 # from window_types import *
 from .FMS_Classes import *
-from .db_interface import *
-import sys
+from .DB_Files.DBI_Class import DBInterface
 
 class Header(QWidget):
     def __init__(self, parent):
@@ -45,23 +44,18 @@ class Header(QWidget):
         
 
 class Sidebar(QWidget):
-    def __init__(self):
+    def __init__(self, button_data):
         super().__init__()
 
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
 
-    def open_learning_queue(self):
-        pass
+        for name, function in button_data:
+            but = QPushButton(name)
+            but.clicked.connect(function)
+            self.layout.addWidget(but)
 
-    def open_testing_station(self):
-        pass
-
-    def open_FMS(self):
-        pass
-
-    def open_settings(self):
-        pass
+        
 
 class MainStack(QStackedWidget):
     def __init__(self):
@@ -69,46 +63,63 @@ class MainStack(QStackedWidget):
         
         # gets all the files for a 
         self.conn = DBInterface()
+        print("database connected")
         # 101 is the current id for the root folder
-        self.home()
 
-    def home(self):
-        root = self.get_dir_children("101")
-            
-        self.base = FolderScreen(self, root)
+
+    def openFMS(self):
+        folder_contents = self.conn.get_folder_contents(1)
+        print(folder_contents)
+        self.base = FolderScreen(folder_contents, [self.add_folder_screen, self.add_file_screen])
         self.setCurrentIndex(self.addWidget(self.base))
+
+    def openLQ(self):
+        pass
+    #     root = self.get_dir_children("101")
+            
+    #     self.base = FolderScreen(self, root, [self.add_LQfolder_screen, self.add_test_screen])
+    #     self.setCurrentIndex(self.addWidget(self.base))
+
+    def openTS(self):
+        pass
+
+    def open_ST(self):
+        pass
         
-    
 
     def add_folder_screen(self, new_dir):
-        filenames = self.get_dir_children(new_dir)
-        folder = FolderScreen(self, filenames)
+        filenames = self.conn.get_folder_contents(new_dir)
+        folder = FolderScreen(self, filenames, [self.add_folder_screen, self.add_file_screen])
         print(self.count())
         self.setCurrentIndex(self.addWidget(folder))
+    
 
-        
-    def open_file_screen(self, verse_id):
-        file = FileScreen(self, self.get_verse(verse_id))
-        self.setCurrentIndex(self.addWidget(file))
+    # def add_LQfolder_screen(self, new_dir):
+    #     filenames = self.get_dir_children(new_dir)
+    #     folder = FolderScreen(self, filenames, [self.add_LQfolder_screen, self.add_test_screen])
+    #     print(self.count())
+    #     self.setCurrentIndex(self.addWidget(folder))
+
+    # def add_test_screen(self, verse_id):
+    #     screen = TestScreen(self.get_verse(verse_id), self.back)
+    #     self.setCurrentIndex(self.addWidget(screen))
+
+    def add_file_screen(self, verse_id):
+        pass
+    #     # TODO implement the get verse data, probably update the query functions
+    #     # while im at it
+    #     screen = FileScreen(self, self.get_verse_data(verse_id))
+    #     self.setCurrentIndex(self.addWidget(screen))
 
     def back(self):
-        self.parentWidget().back()
-
-    def get_dir_children(self, dir):
-        """Returns a list of tuples, each one containing the directory text and
-        the correspoding id
-        """
-        root = self.conn.execute("*", "directory", f"WHERE par_dir = {dir}")
-        files = []
-        for index, row in root.iterrows():
-            files.append((row["dir"], row["id"], row["verse_id"]))
-        return files
+        if self.count() > 1:
+            self.removeWidget(self.currentWidget())
+            
     
-    def get_verse(self, verse_id):
+        
+    
+    def get_file(self, verse_id):
         """Returns a verse from the "verses" table based on the given verse ID"""
-
-        table = self.conn.execute("scripture_text", "verses", f"WHERE verses.id = {verse_id}")
-        return table.iloc[0, 0]
 
 
 class Window(QWidget):
@@ -121,33 +132,38 @@ class Window(QWidget):
         self.setContentsMargins(20, 10, 20, 20)
         self.slot_int = 2
 
-        self.layout = QVBoxLayout()
+        self.layout = QGridLayout()
         self.setLayout(self.layout)
 
-
-        self.head = Header(self)
-        self.layout.addWidget(self.head)
-
+        # Creates main stack. It is created before most everything
+        # so the nav_bar can use its methods
         self.main_stack = MainStack()
-        # self.layout.addWidget(self.main_stack)
+        self.main_stack.openFMS()
 
+        # Navigation Bar
+        self.nav_bar = Sidebar([
+            ("Back", self.main_stack.back), 
+            ("File Management", self.main_stack.openFMS),
+            ("Learning Queue", self.main_stack.openLQ),
+            ("Testing Station", self.main_stack.openTS),
+            ("Settings", self.main_stack.open_ST)
+            ])
+        self.layout.addWidget(self.nav_bar)
+
+
+        # the main stack is added to a scroll area, in case it
+        # ever gets too large
         self.scrollarea = QScrollArea()
         self.scrollarea.setWidgetResizable(True)
         self.scrollarea.setWidget(self.main_stack)
 
         self.layout.addWidget(self.scrollarea)
 
-    def display(self):
-        newlabel = QLabel(str(self.slot_int))
-        self.layout.addWidget(newlabel, self.slot_int, 1)
-        self.slot_int += 1
 
-    def back(self):
-        if self.main_stack.count() > 1:
+           
 
-            self.main_stack.removeWidget(self.main_stack.currentWidget())
-
-        
+    # TODO: run this functionality only in one class,
+    # not in both the window and mainstack classes
     def home(self):
         
         if self.main_stack.count() > 1:
