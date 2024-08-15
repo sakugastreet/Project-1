@@ -1,6 +1,6 @@
 # from window_types import *
-from .FMS_Classes import *
-from .DB_Files.DBI_Class import DBInterface
+from FMS_Classes import *
+from DBI_Class import DBInterface
 
 class Header(QWidget):
     def __init__(self, parent):
@@ -104,7 +104,7 @@ class MainStack(QStackedWidget):
     #     screen = TestScreen(self.get_verse(verse_id), self.back)
     #     self.setCurrentIndex(self.addWidget(screen))
 
-    def add_file_screen(self, verse_id):
+    def add_file_screen(self, file_id):
         pass
     #     # TODO implement the get verse data, probably update the query functions
     #     # while im at it

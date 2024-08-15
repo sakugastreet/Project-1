@@ -1,4 +1,4 @@
-from GUI_Files.MW_Classes import *
+from MW_Classes import *
 # DB files really doesn't have anyhting yet, and may
 # not depending on whether i switch from MySQL to SQLlite
 import sys

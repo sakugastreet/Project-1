@@ -6,16 +6,21 @@ from sqlite3 import Error
 class DBInterface():
     def __init__(self):
         try:
-            self.conn = sqlite3.connect("DB_Files/dataset.db")
+            self.conn = sqlite3.connect("dataset.db")
             self.cursor = self.conn.cursor()
         except Error as e:
             print(f"Error connecting to database: {e}")
 
-    def get_folder_contents(self, dir):
+    def get_folder_contents(self, id):
         """ Returns the ID's, Names, File_ID's and Tag_IDs of 
             each item with the given directory ID."""
-        return self.select("ID, Name, File_ID, Tag_ID", "Directory", "Par_ID", f"{dir}")
+        return self.select("ID, Name, File_ID, Tag_ID", "Directory", "Par_ID", f"{id}")
     
+
+    def get_file_contents(self, id):
+        """ Returns the Name, Contents and Tags of the file found at ID."""
+        return self.select("Name, ", "Files", "ID", f"{id}")
+
 
     def select(self, sel_entry, fro_entry, where_x="", where_y=""):
         try:    
