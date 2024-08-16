@@ -22,7 +22,7 @@ class SimpleButton(QPushButton):
         
 
 class FolderScreen(QWidget):
-    def __init__(self, filenames, functions):
+    def __init__(self, files, functions):
         super().__init__()
 
         self.width = 8
@@ -34,12 +34,12 @@ class FolderScreen(QWidget):
         self.folders = []
         self.files = []
 
-        for id, name, file_id, tag in filenames:
+        for id, name, file_id, tag_id in files:
             if file_id == None:
                 self.but = SimpleButton(name, functions[0], id)
                 self.folders.append(self.but)
             else:
-                self.but = SimpleButton(name, functions[1], file_id)
+                self.but = SimpleButton(name, functions[1], [file_id, tag_id])
                 self.files.append(self.but)
             self.but.setFixedSize(140, 60)
             # self.but.setFixedWidth(150)
@@ -66,14 +66,24 @@ class FolderScreen(QWidget):
 
 
 class FileScreen(QWidget):
-    def __init__(self, parent, text):
-        super(). __init__(parent)
+    def __init__(self, filename, contents, tag, back):
+        super(). __init__()
 
-        self.layout = QHBoxLayout()
+        self.layout = QGridLayout()
         self.setLayout(self.layout)
 
-        self.label = QLabel("sdfsfefsef")
-        self.layout.addWidget(self.label)
+        self.label = QLabel(filename)
+        self.layout.addWidget(self.label, 0, 1)
+
+        self.contents = QLabel(contents)
+        self.layout.addWidget(self.contents, 1, 0, 3, 3)
+
+        self.tag = QLabel(tag)
+        self.layout.addWidget(self.tag, 5, 0)
+
+        self.back = QPushButton("Back")
+        self.back.clicked.connect(back)
+        self.layout.addWidget(self.back, 6, 3)
 
 
 

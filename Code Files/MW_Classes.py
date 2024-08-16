@@ -69,7 +69,10 @@ class MainStack(QStackedWidget):
 
     def openFMS(self):
         folder_contents = self.conn.get_folder_contents(1)
-        print(folder_contents)
+        if folder_contents == []:
+            print("Error Finding file in database")
+            return
+
         self.base = FolderScreen(folder_contents, [self.add_folder_screen, self.add_file_screen])
         self.setCurrentIndex(self.addWidget(self.base))
 
@@ -104,19 +107,20 @@ class MainStack(QStackedWidget):
     #     screen = TestScreen(self.get_verse(verse_id), self.back)
     #     self.setCurrentIndex(self.addWidget(screen))
 
-    def add_file_screen(self, file_id):
-        pass
-    #     # TODO implement the get verse data, probably update the query functions
-    #     # while im at it
-    #     screen = FileScreen(self, self.get_verse_data(verse_id))
-    #     self.setCurrentIndex(self.addWidget(screen))
+    def add_file_screen(self, param_data):
+        file = self.conn.get_file_contents(f"{param_data[0]}", f"{param_data[1]}")
+        print(file)
+        file_screen = FileScreen(file[0], file[1], file[2], self.back)
+        self.push(file_screen)
+
 
     def back(self):
         if self.count() > 1:
             self.removeWidget(self.currentWidget())
             
     
-        
+    def push(self, widget):
+        self.setCurrentIndex(self.addWidget(widget))
     
     def get_file(self, verse_id):
         """Returns a verse from the "verses" table based on the given verse ID"""
