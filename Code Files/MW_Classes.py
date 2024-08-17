@@ -44,16 +44,25 @@ class Header(QWidget):
         
 
 class Sidebar(QWidget):
-    def __init__(self, button_data):
+    def __init__(self, layout, button_data, max_width=None, max_height=None):
         super().__init__()
 
-        self.layout = QHBoxLayout()
+        if max_height != None:
+            self.setMaximumHeight(max_height)
+        if max_width != None:
+            self.setMaximumWidth(max_width)
+
+        # self.setContentsMargins(0,0,0,0)
+
+        self.layout = layout()
         self.setLayout(self.layout)
 
         for name, function in button_data:
             but = QPushButton(name)
             but.clicked.connect(function)
             self.layout.addWidget(but)
+
+        
 
         
 
@@ -74,6 +83,7 @@ class MainStack(QStackedWidget):
             return
 
         self.base = FolderScreen(folder_contents, [self.add_folder_screen, self.add_file_screen])
+        self.base.add_buttons()
         self.setCurrentIndex(self.addWidget(self.base))
 
     def openLQ(self):
@@ -93,6 +103,7 @@ class MainStack(QStackedWidget):
     def add_folder_screen(self, new_dir):
         filenames = self.conn.get_folder_contents(new_dir)
         folder = FolderScreen(self, filenames, [self.add_folder_screen, self.add_file_screen])
+        print(folder.widthMM)
         print(self.count())
         self.setCurrentIndex(self.addWidget(folder))
     
@@ -133,7 +144,7 @@ class Window(QWidget):
         # self.resize(300, 300)
         self.showMaximized()
         self.setWindowTitle("hoooplaaah")
-        self.setContentsMargins(20, 10, 20, 20)
+        # self.setContentsMargins(20, 10, 20, 20)
         self.slot_int = 2
 
         self.layout = QGridLayout()
@@ -144,15 +155,18 @@ class Window(QWidget):
         self.main_stack = MainStack()
         self.main_stack.openFMS()
 
+        # Header
+        self.header = Sidebar(QHBoxLayout, [("Back", self.main_stack.back)], max_height=40)
+        self.layout.addWidget(self.header, 0, 0, 1, -1, Qt.AlignmentFlag.AlignLeft)
+
         # Navigation Bar
-        self.nav_bar = Sidebar([
-            ("Back", self.main_stack.back), 
+        self.nav_bar = Sidebar(QVBoxLayout, [
             ("File Management", self.main_stack.openFMS),
             ("Learning Queue", self.main_stack.openLQ),
             ("Testing Station", self.main_stack.openTS),
             ("Settings", self.main_stack.open_ST)
-            ])
-        self.layout.addWidget(self.nav_bar)
+            ], max_width=80)
+        self.layout.addWidget(self.nav_bar, 1, 0, -1, 1, Qt.AlignmentFlag.AlignVCenter)
 
 
         # the main stack is added to a scroll area, in case it
@@ -161,7 +175,7 @@ class Window(QWidget):
         self.scrollarea.setWidgetResizable(True)
         self.scrollarea.setWidget(self.main_stack)
 
-        self.layout.addWidget(self.scrollarea)
+        self.layout.addWidget(self.scrollarea, 1, 1)
 
 
            

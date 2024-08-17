@@ -12,7 +12,7 @@ This is the first of many project apps built to help me grow and practice my cod
 
 During development and testing I will be using the LDS Standard Works for content. Should interest in this project grow or it ever become commercially used I will seek a license for this content or remove it.
 
-The primary coding language used will be python, the GUI will be made using the PYQT6 library and the database will be built using MySQL(though I will probably switch to SQLlite).
+The primary coding language used will be python, the GUI will be made using the PySide6 library and the database will be built using MySQL(though I will probably switch to SQLlite).
 
 ## Ver. 1.0
 
