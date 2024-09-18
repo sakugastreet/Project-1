@@ -14,22 +14,29 @@ class DBInterface():
     def get_folder_contents(self, id):
         """ Returns the ID's, Names, File_ID's and Tag_IDs of 
             each item with the given directory ID."""
-        return self.select("ID, Name, File_ID, Tag_ID", "Directory", "Par_ID", f"{id}")
+        return self.select("ID, Name, File_ID", "Directory", "Par_ID", f"{id}")
     
-    def get_file_contents(self, id, tag_id):
+    def set_status(self, dir_id, state_id):
+        self.update_table("Directory", "State_ID", state_id, "ID", dir_id)
+
+    def get_file_contents(self, file_id):
         """ Returns the Name, Content, and Tag of the file found at ID."""
         # gets the file contents, 
-        file = self.select("Name, Contents", "Files", "ID", f"{id}")
-        # gets the tag and appends it to file
-        if tag_id != "None":
-            tag = self.select("Name", "Tags", "ID", f"{tag_id}")[0][0]
-        else:
-            tag = "None"
+        file = self.select("Name, Contents", "Files", "ID", f"{file_id}")
 
-        total = [file[0][0], file[0][1], tag]
-        return total
+        
+        return file[0][0], file[0][1]
     
-    def add_file(self, par_id, filename, contents, tag_id=""):
+    def add_folder(self, folder_name, par_id):
+        self.insert("Directory", ["Name", "Par_ID"], [folder_name, par_id])
+        return self.cursor.lastrowid
+
+    def update_file(self, filename, contents, file_id):
+        self.update_table("Files", "Name", filename, "ID", file_id)
+        self.update_table("Files", "Contents", contents, "ID", file_id)
+        self.update_table("Directory", "Name", filename, "File_ID", file_id)
+
+    def add_file(self, par_id, filename, contents):
         # inserts into the "files" table, then grabs the id,
         # allowing for insertion in the directorys table
         self.insert("Files", ["Name", "Contents"], [filename, contents])
@@ -37,9 +44,8 @@ class DBInterface():
 
         self.insert("Directory", ["Name", "Par_ID", "File_ID"], [filename, par_id, file_id])
 
-        if tag_id != "":
-            self.insert_tag(file_id, tag_id)
-
+        return file_id
+    
     def insert_tag(self, dir_id, tag_id):
         self.update_table("Directory", "Tag_ID", tag_id, "ID", dir_id)
 
@@ -62,13 +68,13 @@ class DBInterface():
                     {where_x} = ?
                 """
 
-            self.cursor.execute(sql, where_y)
+            self.cursor.execute(sql, (where_y, ))
             rows = self.cursor.fetchall()
 
             return rows
         
         except Error as e:
-            print(f"Error connecting to Files: {e}")
+            print(f"Error executing self.select: {e}")
 
     def select_joined(self, sel_entry, fro_entry, join, on_x, on_y, where_x="", where_y=""):
         try:    
@@ -97,7 +103,7 @@ class DBInterface():
                     {where_x} = ?
                 """
 
-            self.cursor.execute(sql, where_y)
+            self.cursor.execute(sql, (where_y, ))
             rows = self.cursor.fetchall()
 
             return rows
@@ -120,9 +126,9 @@ class DBInterface():
             self.conn.commit()
 
         except Error as e:
-            print(f"Error Inserting to Files: {e}")
+            print(f"Error Inserting to table {table}: {e}")
 
-    def update_table(self, table_name, column, set_value, where_x, where_y):
+    def update_table(self, table_name:str, column:str, set_value, where_x, where_y):
         try:
             sql = f"""
             UPDATE 
@@ -146,5 +152,94 @@ class DBInterface():
         except Error as e:
             print(f"Error closing the connection: {e}")
 
+    def get_par_id(self, dir_id):
+        """Returns the par_ID of the one given"""
+        if dir_id == 1 or dir_id == "1":
+            return 1
 
+
+        # print(self.select("Par_ID", "Directory", "ID", f"{dir_id}"))
+        return self.select("Par_ID", "Directory", "ID", f"{dir_id}")[0][0]
     
+    def is_folder(self, dir_id):
+
+        
+        result = self.select("File_ID", "Directory", "ID", f"{dir_id}")
+
+        if not result:
+            return True
+        
+        file_id = result[0][0]
+    
+        if file_id == None:
+            return True
+        else:
+            return False
+        
+    
+    def delete_from_DB(self, dir_id):
+        try:
+            # If File Deletes from "Files" table 
+            if self.is_folder(dir_id) == False:
+                self.delete("Files", "ID", f"{self.get_file_id(dir_id)}")
+
+            contents = self.get_folder_contents(dir_id)
+
+            if contents:
+                for row in contents:
+                    self.delete_from_DB(row[0])
+                
+            self.delete("Directory", "ID", f"{dir_id}")
+
+        except Error as e:
+            print(f"Error Deleting File: {e}")
+    
+    def delete(self, table:str, column:str, value:str):
+        sql = f"""
+        DELETE FROM {table}
+        WHERE {column} = ?
+        """
+        
+        self.cursor.execute(sql, (value, ))
+        self.conn.commit()
+
+    def get_file_id(self, dir_id):
+        file_id = self.select("File_ID", "Directory", "ID", f"{dir_id}")[0][0]
+
+        return file_id
+        
+    def move(self, dir_id, new_par_id):
+        self.update_table("Directory", "Par_ID", f"{new_par_id}", "ID", dir_id)
+        
+
+    def copy(self, dir_id, loc_id):
+        if self.is_folder(dir_id):
+            # i need to get the info, then copy/insert it into the lines.
+            # then i need to get the children of the file and recursively 
+            # insert them
+            filename = self.select("Name", "Directory", "ID", f"{dir_id}")
+            if filename != None:
+                filename = filename[0][0]
+                new_dir = self.add_folder(filename, loc_id)
+            else:
+                print("There was an error getting the filename to copy, ending process")
+                return
+            
+            contents = self.get_folder_contents(dir_id)
+            print(contents)
+            if contents == None:
+                return
+                
+            for row in contents:
+                print(f"copying {row[0]}")
+                self.copy(row[0], new_dir)
+
+        else:
+            file = self.get_file_contents(self.get_file_id(dir_id))
+            self.add_file(loc_id, file[0], file[1])
+            
+
+    def get_children(self, dir_id):
+        self.get_folder_contents(dir_id)
+
+        
