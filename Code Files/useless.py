@@ -5,8 +5,8 @@ face = DBInterface()
 
 #%%
 sql = """
-INSERT INTO Directory_new (Name, Par_ID)
-VALUES ("Files", 1)
+INSERT INTO State (State)
+VALUES ("None")
 """
 
 # face.conn.execute(sql)
@@ -63,7 +63,7 @@ for item in dictionary.items():
     print(item)
 
 #%%
-face.update_table("Directory", "Par_ID", "NULL", "ID", 1)
+face.set_state(3, 1)
 
 
 face.conn.commit()

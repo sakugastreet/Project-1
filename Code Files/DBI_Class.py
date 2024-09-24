@@ -11,13 +11,18 @@ class DBInterface():
         except Error as e:
             print(f"Error connecting to database: {e}")
 
-    def get_folder_contents(self, id):
+    def get_folder_contents(self, dir_id, table_name):
         """ Returns the ID's, Names, File_ID's and Tag_IDs of 
             each item with the given directory ID."""
-        return self.select("ID, Name, File_ID", "Directory", "Par_ID", f"{id}")
+        return self.select("ID, Name, File_ID", table_name, "Par_ID", f"{dir_id}")
     
-    def set_status(self, dir_id, state_id):
-        self.update_table("Directory", "State_ID", state_id, "ID", dir_id)
+    def set_state(self, dir_id, state_id):
+        if self.is_folder(dir_id):
+            for row in self.get_folder_contents(dir_id):
+                self.set_state(row[0], state_id)
+                
+        else:
+            self.update_table("Directory", "State_ID", state_id, "ID", dir_id)
 
     def get_file_contents(self, file_id):
         """ Returns the Name, Content, and Tag of the file found at ID."""
@@ -226,12 +231,10 @@ class DBInterface():
                 return
             
             contents = self.get_folder_contents(dir_id)
-            print(contents)
             if contents == None:
                 return
                 
             for row in contents:
-                print(f"copying {row[0]}")
                 self.copy(row[0], new_dir)
 
         else:

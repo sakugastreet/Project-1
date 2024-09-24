@@ -1,8 +1,10 @@
 # from window_types import *
 from PySide6.QtGui import QContextMenuEvent, QAction
-from PySide6.QtWidgets import QMenu
+from PySide6.QtWidgets import QMenu, QWidget
 from FMS_Classes import *
 from DBI_Class import DBInterface
+from Stack_Classes import FileStack
+
 
         
 
@@ -20,62 +22,42 @@ class Sidebar(QWidget):
         self.layout = layout()
         self.setLayout(self.layout)
 
-        for name, function in button_data:
-            but = QPushButton(name)
-            but.clicked.connect(function)
+        for name, function, data in button_data:
+            but = ButWithParams(name, function, data)
             self.layout.addWidget(but)
 
-        
+
+
+
+class LQStack(FileStack):
+    def __init__(self, db_conn, table_name):
+        super().__init__(db_conn, table_name)
+
+    def add_file_screen():
+        pass
 
         
-
-class MainStack(QStackedWidget):
-    def __init__(self):
-        super().__init__()
-        
-        # gets all the files for a 
-        self.conn = DBInterface()
-        self.selected_widget = None
-    
-        # 101 is the current id for the root folder
-        self.root_dir = 1
-        self.curr_dir = self.root_dir
-        self.curr_file_id = None
+class FMSStack(FileStack):
+    def __init__(self, db_conn, db_table):
+        super().__init__(db_conn, db_table)
 
         self.cut_id = None
         self.copy_id = None
 
-        folder_actions = {
-            "Open":self.add_folder_screen,
-            "Rename Folder":self.rename_folder,
-            "Copy":self.copy,
-            "Cut":self.cut,
-            "Delete":self.delete,
-            "Set Selected":self.set_selected
-        }
-        file_actions = {
-            "Open":self.add_file_screen,
-            "Copy":self.copy,
-            "Cut":self.cut,
-            "Delete":self.delete,
-            "Set Selected":self.set_selected
-
-        }
-        file_functions = {
-            "back":self.back,
-            "add_file_to_DB":self.add_file_to_DB,
-            "update_file":self.update_file}
+        self.folder_actions["Rename Folder"] = self.rename_folder,
+        self.folder_actions["Add to Learning Queue"] = self.set_learning,
+        self.folder_actions["Copy"] = self.copy,
+        self.folder_actions["Cut"] = self.cut,
+        self.folder_actions["Delete"] = self.delete,
+        self.folder_actions["Set Selected"] = self.set_selected
+            
+            
+        self.file_actions["Add to Learning Queue"] = self.set_learning
+        self.file_actions["Copy"] = self.copy
+        self.file_actions["Cut"] = self.cut
+        self.file_actions["Delete"] = self.delete
+        self.file_actions["Set Selected"] = self.set_selected
     
-        self.functions = {
-            "Folder Actions":folder_actions,
-            "File Actions":file_actions,
-            "File Functions":file_functions,
-        }
-
-    
-    def set_selected(self, widget):
-        self.selected_widget = widget
-        print(widget.dir_id)
 
 
     def contextMenuEvent(self, event):
@@ -105,23 +87,6 @@ class MainStack(QStackedWidget):
         # Show the menu at the cursor position
         context_menu.exec_(event.globalPos())
 
-
-    def openFMS(self):
-        self.add_folder_screen(self.root_dir)
-        
-
-    def add_folder_screen(self, dir_id):
-        # if type(IDs) == int:
-        #     dir_id = IDs
-        # else:
-        #     dir_id = IDs[0]
-
-        filenames = self.conn.get_folder_contents(dir_id)
-        folder = FolderScreen(filenames, self.functions, dir_id)
-        self.push(folder)
-        self.curr_dir = dir_id
-        print(self.curr_dir) 
-
     def add_file_screen(self, IDs):
         file_id = IDs[1]
         dir_id = IDs[0]
@@ -132,18 +97,6 @@ class MainStack(QStackedWidget):
         self.push(file_screen)
         self.curr_file_id = file_id
         self.curr_dir = dir_id
-
-    def back(self):
-        if self.count() > 1:
-            self.removeWidget(self.currentWidget())
-            # if at the root file, then we fault out, so Im adding an if
-            # statment to protect from that
-            self.curr_dir = self.conn.get_par_id(self.curr_dir)
-            self.refresh()
-            self.curr_file_id = None
-                   
-    def push(self, widget):
-        self.setCurrentIndex(self.addWidget(widget))
     
     def new_folder(self):
         text_entry = TextEntry("New Folder", self.add_folder_to_DB, self.curr_dir)
@@ -159,24 +112,7 @@ class MainStack(QStackedWidget):
     def new_file(self):
         new_file = FileScreen(None, "", "", {"back":self.back, "add_file_to_DB":self.add_file_to_DB, "update_file":self.update_file}, True)
         self.push(new_file)
-
-    def add_file_to_DB(self, filename:str, contents:str):
-        """Given a filename and a string, it creates a new row in the Files table
-        and returns the ID of said new row."""
-        
-        file_id = self.conn.add_file(self.curr_dir, filename, contents)
-        self.curr_file_id = file_id
-        return file_id
     
-    def refresh(self):
-            self.removeWidget(self.currentWidget())
-            
-            if self.conn.is_folder(self.curr_dir):
-                self.add_folder_screen(self.curr_dir)
-
-            else:
-                self.add_file_screen((self.curr_dir, self.curr_file_id))
-                
     def copy(self):
         self.copy_id = self.selected_widget.dir_id
 
@@ -193,52 +129,56 @@ class MainStack(QStackedWidget):
         self.cut_id = None
 
     def paste_copy(self):
-        print("item copied")
         self.conn.copy(self.copy_id, self.curr_dir)
         self.refresh()
 
     def rename_folder(self):
         pass
 
+    def set_learning(self):
+        self.conn.set_state(self.selected_widget.dir_id, 1)
 
 class Window(QWidget):
     def __init__(self):
         super().__init__()
 
-        # self.resize(300, 300)
+        self.db_conn = DBInterface()
+
         self.showMaximized()
-        self.setWindowTitle("hoooplaaah")
-        # self.setContentsMargins(20, 10, 20, 20)
-        self.slot_int = 2
+        self.setWindowTitle("Project 1")
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
 
-        # Creates main stack. It is created before most everything
-        # so the nav_bar can use its methods
-        self.main_stack = MainStack()
-        self.main_stack.openFMS()
+        self.fms_stack = FMSStack(self.db_conn, "Directory")
+        self.lq_stack = LQStack(self.db_conn, "Directory")
+        
+
+
 
         # Header
-        self.header = Sidebar(QHBoxLayout,
-        [("Back", self.main_stack.back),
-        ("Refresh", self.main_stack.refresh)], max_height=40)
-        self.layout.addWidget(self.header, 0, 0, 1, -1, Qt.AlignmentFlag.AlignLeft)
+        # self.header = Sidebar(QHBoxLayout, QPushButton,
+        # [("Back", self.fms_stack.back),
+        # ("Refresh", self.fms_stack.refresh)], max_height=40)
+        # self.layout.addWidget(self.header, 0, 0, 1, -1, Qt.AlignmentFlag.AlignLeft)
+
+        self.                                        scrollarea = QScrollArea()
+        self.scrollarea.setWidgetResizable(True)
+        self.scrollarea.setWidget(self.fms_stack)
+      
 
         # Navigation Bar
-        self.nav_bar = Sidebar(QVBoxLayout, [
-            ("File Management", self.main_stack.openFMS)
-            # ("Learning Queue", self.main_stack.openLQ),
-            # ("Testing Station", self.main_stack.openTS),
-            # ("Settings", self.main_stack.open_ST)
-            ], max_width=160)
+        self.nav_bar = Sidebar(QVBoxLayout, 
+            [("File Management", self.replacescrollwidget, self.fms_stack),
+            ("Learning Queue", self.replacescrollwidget, self.fms_stack),
+            ("Testing", self.replacescrollwidget, self.fms_stack)],
+            max_width=160)
         self.layout.addWidget(self.nav_bar, 1, 0, -1, 1, Qt.AlignmentFlag.AlignVCenter)
 
 
-        # the main stack is added to a scroll area, in case it
-        # ever gets too large
-        self.scrollarea = QScrollArea()
-        self.scrollarea.setWidgetResizable(True)
-        self.scrollarea.setWidget(self.main_stack)
-
         self.layout.addWidget(self.scrollarea, 1, 1)
+
+
+    def replacescrollwidget(self, widget):
+        self.scrollarea.takeWidget()
+        self.scrollarea.setWidget(widget)

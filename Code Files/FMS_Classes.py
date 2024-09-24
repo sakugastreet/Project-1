@@ -44,6 +44,19 @@ class TextEntry(QWidget):
         else:
             self.error_label.setText("Please Enter a name with valid charaters")
  
+class ButWithParams(QPushButton):
+    def __init__(self, name, function, parameters=None):
+        super().__init__(name)
+        self.function = function
+        self.parameters = parameters
+
+        self.clicked.connect(self.triggered)
+
+    def triggered(self):
+        if self.parameters == None:
+            self.function()
+        else:
+            self.function(self.parameters)
 
 class SimpleButton(QPushButton):
     """This class should allow me to work with parameters and not have to call in the
